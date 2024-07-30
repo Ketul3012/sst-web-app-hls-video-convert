@@ -1,0 +1,19 @@
+{
+  "name": "@notes/functions",
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "test": "sst bind vitest",
+    "typecheck": "tsc -noEmit"
+  },
+  "dependencies": {
+    "aws-sdk" : "^2.1659.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.11",
+    "@types/aws-lambda": "^8.10.141",
+    "@aws-sdk/types" : "^3.609.0",
+    "vitest": "^2.0.4",
+    "sst": "^2.43.4"
+  }
+}
