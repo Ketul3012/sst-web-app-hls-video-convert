@@ -6,6 +6,7 @@ export interface Video {
   id: string;
   url: string;
   name: string;
+  key: string;
 }
 
 function App() {
@@ -48,6 +49,7 @@ function App() {
               <Link key={index} to={"/video/" + video.id}>
                 <li className='flex justify-between items-center border-b border-gray-300 py-2'>
                   <p className='font-semibold'>{video.name}</p>
+                  <p className='font-semibold'>{video.key}</p>
                   <button
                     onClick={(e) => {
                       e.preventDefault();

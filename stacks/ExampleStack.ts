@@ -1,7 +1,20 @@
-import { Api, Bucket, StackContext, StaticSite, Table } from "sst/constructs";
+import {
+  Api,
+  Bucket,
+  StackContext,
+  StaticSite,
+  Table,
+  Function,
+} from "sst/constructs";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as cloudfrontOrigins from "aws-cdk-lib/aws-cloudfront-origins";
 import * as cdk from "aws-cdk-lib";
+import {
+  ManagedPolicy,
+  PolicyStatement,
+  Role,
+  ServicePrincipal,
+} from "aws-cdk-lib/aws-iam";
 
 export function ExampleStack({ stack }: StackContext) {
   const videoBucket = new Bucket(stack, "VideosBucket", {
@@ -13,9 +26,59 @@ export function ExampleStack({ stack }: StackContext) {
     },
   });
 
+  // Destination bucket for HLS output
+  const hlsBucket = new Bucket(stack, "HLSBucket", {
+    cdk: {
+      bucket: {
+        autoDeleteObjects: true,
+        removalPolicy: cdk.RemovalPolicy.DESTROY,
+      },
+    },
+  });
+
+  const mediaConvertRole = new Role(stack, "MediaConvertRole", {
+    assumedBy: new ServicePrincipal("mediaconvert.amazonaws.com"),
+    managedPolicies: [
+      ManagedPolicy.fromAwsManagedPolicyName("AmazonS3FullAccess"),
+      ManagedPolicy.fromAwsManagedPolicyName("AWSLambda_FullAccess"),
+      ManagedPolicy.fromAwsManagedPolicyName(
+        "AmazonAPIGatewayInvokeFullAccess"
+      ),
+    ],
+  });
+
+  const convertFunction = new Function(stack, "ConvertFunction", {
+    handler: "packages/functions/src/convert.handler",
+    environment: {
+      VIDEO_BUCKET: videoBucket.bucketName,
+      HLS_BUCKET: hlsBucket.bucketName,
+      MEDIACONVERT_ROLE: mediaConvertRole.roleArn,
+      MEDIACONVERT_ENDPOINT: "https://mediaconvert.us-east-1.amazonaws.com", // replace with your MediaConvert endpoint
+    },
+  });
+
+  convertFunction.attachPermissions([
+    new PolicyStatement({
+      actions: ["iam:*", "mediaconvert:*"],
+      resources: ["*"],
+    }),
+  ]);
+
+  // Grant the Lambda function access to both buckets
+  videoBucket.cdk.bucket.grantRead(convertFunction);
+  hlsBucket.cdk.bucket.grantWrite(convertFunction);
+
   const distribution = new cloudfront.Distribution(stack, "Distribution", {
     defaultBehavior: {
-      origin: new cloudfrontOrigins.S3Origin(videoBucket.cdk.bucket),
+      origin: new cloudfrontOrigins.S3Origin(hlsBucket.cdk.bucket),
+    },
+  });
+
+  videoBucket.addNotifications(stack, {
+    convertFunction: {
+      function: convertFunction,
+      events: ["object_created"],
+      filters: [{ suffix: ".mp4" }],
     },
   });
 
@@ -50,7 +113,7 @@ export function ExampleStack({ stack }: StackContext) {
     buildOutput: "dist",
     environment: {
       VITE_APP_API_URL: api.url,
-      VITE_APP_VIDEO_BUCKET_NAME: videoBucket.bucketName,
+      VITE_APP_VIDEO_BUCKET_NAME: hlsBucket.bucketName,
       VITE_APP_VIDEO_DOMAIN_NAME: distribution.domainName,
     },
   });
@@ -59,7 +122,7 @@ export function ExampleStack({ stack }: StackContext) {
   stack.addOutputs({
     ApiEndpoint: api.url,
     VideoStreamUrl: distribution.domainName,
-    VideoBucket: videoBucket.bucketName,
+    VideoBucket: hlsBucket.bucketName,
     FrontendUrl: web.url,
   });
 }

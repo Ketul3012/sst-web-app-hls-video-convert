@@ -27,13 +27,16 @@ export const AddVideo = () => {
         });
 
         await axios.post(import.meta.env.VITE_APP_API_URL + "/videos", {
-          name: videoFile.name,
+          name: videoName,
           url:
             "https://" +
             import.meta.env.VITE_APP_VIDEO_DOMAIN_NAME +
             "/" +
-            s3UrlResponse.data.url.split("?")[0].split("s3.amazonaws.com/")[1],
-          key: videoFile.name,
+            videoFile.name.split(".")[0] +
+            "/" +
+            videoFile.name.split(".")[0] +
+            "_output.m3u8",
+          key: videoFile.name.split(".")[0],
         });
 
         alert("Video uploaded successfully");
