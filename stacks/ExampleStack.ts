@@ -15,6 +15,7 @@ import {
   Role,
   ServicePrincipal,
 } from "aws-cdk-lib/aws-iam";
+import { StorageClass } from "aws-cdk-lib/aws-s3";
 
 export function ExampleStack({ stack }: StackContext) {
   const videoBucket = new Bucket(stack, "VideosBucket", {
@@ -22,6 +23,13 @@ export function ExampleStack({ stack }: StackContext) {
       bucket: {
         autoDeleteObjects: true,
         removalPolicy: cdk.RemovalPolicy.DESTROY,
+        lifecycleRules: [
+          {
+            id: "delete-after-a-day",
+            expiration: cdk.Duration.days(1),
+            enabled: true,
+          },
+        ],
       },
     },
   });
@@ -32,6 +40,13 @@ export function ExampleStack({ stack }: StackContext) {
       bucket: {
         autoDeleteObjects: true,
         removalPolicy: cdk.RemovalPolicy.DESTROY,
+        intelligentTieringConfigurations: [
+          {
+            name: "move-to-archive-after-90-days",
+            archiveAccessTierTime: cdk.Duration.days(90),
+            deepArchiveAccessTierTime: cdk.Duration.days(365),
+          },
+        ],
       },
     },
   });
