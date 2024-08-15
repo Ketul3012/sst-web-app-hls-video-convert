@@ -65,8 +65,8 @@ The application is deployed using AWS CloudFormation and the Serverless Stack (S
 
 1. Clone the repository.
 2. Set up your AWS credentials and ensure you have the necessary permissions.
-3. Install the required dependencies using `npm install` or `yarn`.
-4. Deploy the infrastructure using the SST framework: `npx sst deploy`.
+3. Install the required dependencies using `pnpm install`.
+4. Deploy the infrastructure using the SST framework: `pnpm deploy:sst`.
 5. The CloudFormation stack will automatically create and configure all the required AWS resources.
 
 ## Configuration
